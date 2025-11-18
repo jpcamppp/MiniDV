@@ -9,9 +9,13 @@ import SwiftUI
 
 @main
 struct MiniDVCaptureApp: App {
+    @StateObject private var controller = DVCaptureController()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(controller)
         }
     }
 }
+

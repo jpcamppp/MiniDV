@@ -137,11 +137,60 @@ final class DVCaptureController: NSObject, ObservableObject, AVCaptureFileOutput
             
     }
     
-    func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: (any Error)?) {
-        <#code#>
+    //capture function
+    func startCapture(){
+        guard !isRecording else { return } //prevent multiple captures
+        guard let device = selectedDevice else {
+            statusText = "No device selected"
+            return
+        }//is the device there or nah
+        
+        do{
+            try configureSession(for: device)
+        }catch{
+            statusText = "Session error: \(error.localizedDescription)"
+            return
+        }//create session
+        
+        if !session.isRunning {
+            session.startRunning()
+        }
+        
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
+        let timestamp = formatter.string(from: Date())
+        
+        let documents = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Documents")
+        
+        let outputURL = documents.appendingPathComponent("MiniDV-\(timestamp).mov")
+        
+        statusText = "Recording to  \(outputURL.lastPathComponent)..."
+        isRecording = true
+        
+        movieOutput.startRecording(to: outputURL, recordingDelegate: self)
     }
     
+    //end capture
+    func stopCapture(){
+        guard isRecording else { return }
+        movieOutput.stopRecording()
+        statusText = "Stopped Recording"
+        
+    }
     
-    
-    
+    func fileOutput(_ output: AVCaptureFileOutput,
+                    didFinishRecordingTo outputFileURL: URL,
+                    from connections: [AVCaptureConnection],
+                    error: (any Error)?) {
+        
+        DispatchQueue.main.async {
+            self.isRecording = false
+            self.session.stopRunning()
+        }
+        if let error = error{
+            self.statusText = "Recording failed: \(error.localizedDescription)"
+        }else{
+            self.statusText = "Recording finished: \(outputFileURL.lastPathComponent)"
+        }
+    }
 }
