@@ -64,17 +64,21 @@ final class DVCaptureController: NSObject, ObservableObject, AVCaptureFileOutput
 
     
     //Handles discovery of devices
-    func refreshDevices(){
-        
+    func refreshDevices() {
+
+        // Most reliable way to detect MiniDV / FireWire cameras
         let discovery = AVCaptureDevice.DiscoverySession(
-            deviceTypes: [.external],
-            mediaType: .muxed,
+            deviceTypes: [
+                .external         // USB video capture cards, some DV bridges
+            ],
+            mediaType: .muxed,       // REQUIRED for MiniDV detection
             position: .unspecified
         )
-        
+
         let foundDevices = discovery.devices
-        
-        //notifications at events
+
+
+        // Notifications
         if foundDevices.count > 0 && lastDeviceCount == 0 {
             sendDeviceConnectedNotification()
         }
@@ -82,17 +86,16 @@ final class DVCaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         if foundDevices.count == 0 && lastDeviceCount > 0 {
             sendDeviceDisconnectedNotification()
         }
-        //update lastDeviceCount to most recent amount of found devices
+
         lastDeviceCount = foundDevices.count
 
-        
         DispatchQueue.main.async {
             self.devices = foundDevices
             self.selectedDevice = foundDevices.first
-            
+
             if foundDevices.isEmpty {
                 self.statusText = "No DV device found, make sure it is on and set to PLAY"
-            }else{
+            } else {
                 self.statusText = "Found \(foundDevices.count) DV device(s)."
             }
         }
