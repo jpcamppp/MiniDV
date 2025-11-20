@@ -174,14 +174,13 @@ final class DVCaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
         let timestamp = formatter.string(from: Date())
-        
-        let documents = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Documents")
-        
+
+        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let outputURL = documents.appendingPathComponent("MiniDV-\(timestamp).mov")
-        
+
         statusText = "Recording to  \(outputURL.lastPathComponent)..."
         isRecording = true
-        
+
         movieOutput.startRecording(to: outputURL, recordingDelegate: self)
     }
     
