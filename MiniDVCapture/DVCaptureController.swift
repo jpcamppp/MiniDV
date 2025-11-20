@@ -63,43 +63,55 @@ final class DVCaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     }
 
     
-    //Handles discovery of devices
     func refreshDevices() {
 
-        // Most reliable way to detect MiniDV / FireWire cameras
+        // MiniDV cameras only appear as MUXED media devices under .externalUnknown
         let discovery = AVCaptureDevice.DiscoverySession(
-            deviceTypes: [
-                .external         // USB video capture cards, some DV bridges
-            ],
-            mediaType: .muxed,       // REQUIRED for MiniDV detection
+            deviceTypes: [.externalUnknown],
+            mediaType: .muxed,
             position: .unspecified
         )
 
-        let foundDevices = discovery.devices
+        let allDevices = discovery.devices
 
-
-        // Notifications
-        if foundDevices.count > 0 && lastDeviceCount == 0 {
-            sendDeviceConnectedNotification()
+        // Filter for real DV devices (Sony, Canon, Panasonic, etc.)
+        let dvDevices = allDevices.filter { device in
+            device.hasMediaType(.muxed) && (
+                device.modelID.uppercased().contains("DV") ||
+                device.localizedName.uppercased().contains("DV") ||
+                device.localizedName.uppercased().contains("DVCAM") ||
+                device.localizedName.uppercased().contains("MINIDV") ||
+                device.manufacturer.uppercased().contains("SONY") == true
+            )
         }
-        
-        if foundDevices.count == 0 && lastDeviceCount > 0 {
-            sendDeviceDisconnectedNotification()
-        }
 
-        lastDeviceCount = foundDevices.count
+        // Debug output: helps you confirm what macOS is actually detecting
+        print("----- MINI-DV DEVICE SCAN -----")
+        if allDevices.isEmpty {
+            print("No .muxed devices detected at all")
+        } else {
+            for d in allDevices {
+                print("Name:      \(d.localizedName)")
+                print("ModelID:   \(d.modelID)")
+                print("Vendor:    \(d.manufacturer)")
+                print("UniqueID:  \(d.uniqueID)")
+                print("Has MUXED: \(d.hasMediaType(.muxed))")
+                print("-------------------------------")
+            }
+        }
 
         DispatchQueue.main.async {
-            self.devices = foundDevices
-            self.selectedDevice = foundDevices.first
+            self.devices = dvDevices
+            self.selectedDevice = dvDevices.first
 
-            if foundDevices.isEmpty {
-                self.statusText = "No DV device found, make sure it is on and set to PLAY"
+            if dvDevices.isEmpty {
+                self.statusText = "No MiniDV device detected. Ensure it is ON and in PLAY mode."
             } else {
-                self.statusText = "Found \(foundDevices.count) DV device(s)."
+                self.statusText = "Found \(dvDevices.count) MiniDV device(s)."
             }
         }
     }
+
     
     
     
